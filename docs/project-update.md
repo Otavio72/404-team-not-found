@@ -1,4 +1,6 @@
-# Project Update Template — CSSD1161
+# project-update
+
+## Project Update Template — CSSD1161
 
 **Instructions:** Fill one copy of this document each week or maintain a running copy and update the Week sections below. Keep links accessible to the TA (public repo or add as collaborator).
 
