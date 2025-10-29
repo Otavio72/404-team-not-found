@@ -39,9 +39,10 @@ jobs:
           # Make sure we're on master locally
           git -C wiki checkout master || git -C wiki switch master
 
-      - name: Sync docs -> wiki and generate Home/_Sidebar (absolute Markdown links)
+      - name: Sync docs -> wiki and generate Home/_Sidebar (wiki-style links)
         run: |
           set -euo pipefail
+
           shopt -s dotglob nullglob
 
           # Clean wiki (keep .git)
@@ -62,10 +63,7 @@ jobs:
             fi
           }
 
-          # Base URL for absolute wiki links (works anywhere)
-          WIKI_BASE="https://github.com/${{ github.repository }}/wiki"
-
-          # === Generate Home.md (index) with absolute Markdown links ===
+          # === Generate Home.md (index) with Wiki-style links ===
           {
             echo "# Project Docs"
             echo
@@ -79,7 +77,7 @@ jobs:
                 [ -z "$f" ] && continue
                 t="$(title_from_file "$f")"
                 base="$(basename "$f" .md)"
-                echo "- [$t](${WIKI_BASE}/${base})"
+                echo "- [[${base}|$t]]"
               done <<< "$root_mds"
             else
               echo "- (none)"
@@ -99,7 +97,7 @@ jobs:
                     t="$(title_from_file "$f")"
                     fname="$(basename "$f")"
                     base="${fname%.md}"
-                    echo "- [$t](${WIKI_BASE}/${dname}/${base})"
+                    echo "- [[${dname}/${base}|$t]]"
                   done <<< "$files"
                 else
                   echo "- (none)"
@@ -109,39 +107,40 @@ jobs:
             fi
           } > wiki/Home.md
 
-          # === Generate _Sidebar.md with absolute Markdown links ===
-          {
-            echo "- [Home](${WIKI_BASE}/Home)"
+          # === Generate _Sidebar.md (Wiki-style links) ===
+          tmp_sidebar="$(mktemp)"
+          echo "- [[Home]]" >> "$tmp_sidebar"
 
-            root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-            if [ -n "$root_mds" ]; then
-              while IFS= read -r f; do
-                [ -z "$f" ] && continue
-                t="$(title_from_file "$f")"
-                base="$(basename "$f" .md)"
-                echo "- [$t](${WIKI_BASE}/${base})"
-              done <<< "$root_mds"
-            fi
+          root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+          if [ -n "$root_mds" ]; then
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              t="$(title_from_file "$f")"
+              base="$(basename "$f" .md)"
+              echo "- [[${base}|$t]]" >> "$tmp_sidebar"
+            done <<< "$root_mds"
+          fi
 
-            dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
-            if [ -n "$dirs" ]; then
-              while IFS= read -r d; do
-                [ -z "$d" ] && continue
-                dname="$(basename "$d")"
-                echo "- $dname"
-                files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-                if [ -n "$files" ]; then
-                  while IFS= read -r f; do
-                    [ -z "$f" ] && continue
-                    t="$(title_from_file "$f")"
-                    fname="$(basename "$f")"
-                    base="${fname%.md}"
-                    echo "  - [$t](${WIKI_BASE}/${dname}/${base})"
-                  done <<< "$files"
-                fi
-              done <<< "$dirs"
-            fi
-          } > wiki/_Sidebar.md
+          dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
+          if [ -n "$dirs" ]; then
+            while IFS= read -r d; do
+              [ -z "$d" ] && continue
+              dname="$(basename "$d")"
+              echo "- $dname" >> "$tmp_sidebar"
+              files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+              if [ -n "$files" ]; then
+                while IFS= read -r f; do
+                  [ -z "$f" ] && continue
+                  t="$(title_from_file "$f")"
+                  fname="$(basename "$f")"
+                  base="${fname%.md}"
+                  echo "  - [[${dname}/${base}|$t]]" >> "$tmp_sidebar"
+                done <<< "$files"
+              fi
+            done <<< "$dirs"
+          fi
+
+          mv "$tmp_sidebar" wiki/_Sidebar.md
 
       - name: Commit & Push to wiki (master only)
         working-directory: wiki
@@ -149,7 +148,7 @@ jobs:
           set -euo pipefail
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
-            git commit -m "chore(wiki): sync from docs (${GITHUB_SHA}) with auto-generated Home.md and _Sidebar.md (absolute links)"
+            git commit -m "chore(wiki): sync from docs (${GITHUB_SHA}) with auto-generated Home.md and _Sidebar.md"
             git push origin HEAD:master
           else
             echo "No changes to commit."
