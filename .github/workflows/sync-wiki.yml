@@ -13,20 +13,13 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure git author
-        run: |
-          git config --global user.name  "github-actions[bot]"
+      - uses: actions/checkout@v4
+      - run: |
+          git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Clone Wiki repository
-        run: |
+      - run: |
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
-
-      - name: Replace Wiki contents with docs/
-        run: |
+      - run: |
           find wiki -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
           rsync -av --exclude '.git' --exclude '.github' docs/ wiki/
           if [ ! -f wiki/Home.md ]; then
@@ -34,19 +27,52 @@ jobs:
               cp wiki/project-update.md wiki/Home.md
             elif [ -f wiki/README.md ]; then
               cp wiki/README.md wiki/Home.md
+            else
+              echo "# Project Wiki" > wiki/Home.md
             fi
           fi
-
-          if [ -f docs/_Sidebar.md ]; then
-            cp docs/_Sidebar.md wiki/_Sidebar.md
+          tmp_sidebar="$(mktemp)"
+          echo "- [[Home]]" >> "$tmp_sidebar"
+          root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+          if [ -n "$root_mds" ]; then
+            while IFS= read -r f; do
+              title="$(grep -m1 '^#' "$f" | sed 's/^#\+ *//')"
+              if [ -z "$title" ]; then
+                base="$(basename "$f" .md)"
+                title="$(echo "$base" | sed 's/[_-]/ /g')"
+              fi
+              rel="./$(basename "$f")"
+              echo "- [$title]($rel)" >> "$tmp_sidebar"
+            done <<< "$root_mds"
           fi
-
-      - name: Commit & Push to Wiki
-        working-directory: wiki
+          dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
+          if [ -n "$dirs" ]; then
+            while IFS= read -r d; do
+              dname="$(basename "$d")"
+              echo "- $dname" >> "$tmp_sidebar"
+              files=$(find "$d" -maxdepth 1 -type f -name "*.md" | sort)
+              if [ -n "$files" ]; then
+                while IFS= read -r f; do
+                  fname="$(basename "$f")"
+                  [ "$fname" = "Home.md" ] && continue
+                  [ "$fname" = "_Sidebar.md" ] && continue
+                  title="$(grep -m1 '^#' "$f" | sed 's/^#\+ *//')"
+                  if [ -z "$title" ]; then
+                    base="$(basename "$f" .md)"
+                    title="$(echo "$base" | sed 's/[_-]/ /g')"
+                  fi
+                  rel="./$dname/$fname"
+                  echo "  - [$title]($rel)" >> "$tmp_sidebar"
+                done <<< "$files"
+              fi
+            done <<< "$dirs"
+          fi
+          mv "$tmp_sidebar" wiki/_Sidebar.md
+      - working-directory: wiki
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
-            git commit -m "chore(wiki): sync from docs on ${GITHUB_SHA}"
+            git commit -m "chore(wiki): sync from docs (${GITHUB_SHA}) with auto-generated _Sidebar.md"
             git push origin HEAD:master
           else
             echo "No changes to commit."
