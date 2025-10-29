@@ -1,3 +1,5 @@
+# project-update
+
 ## Project Update Template — CSSD1161
 
 **Instructions:** Fill one copy of this document each week or maintain a running copy and update the Week sections below. Keep links accessible to the TA (public repo or add as collaborator).
@@ -26,6 +28,7 @@
 - Finalize database scheme.
 - Create demo app to confirm libraries.
 - Update README to add instruction for setup.
+- Create GitHub Actions workflow file to auto update wiki under docs
 
 ### Evidence & Links (paste URLs)
 
