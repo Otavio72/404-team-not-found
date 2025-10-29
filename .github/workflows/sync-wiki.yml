@@ -25,58 +25,106 @@ jobs:
           set -euo pipefail
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
 
-      - name: Sync docs -> wiki and generate Home/_Sidebar (wiki-style links)
+      - name: Sync docs -> wiki and generate Home/_Sidebar (H1 first; trim)
         run: |
           set -euo pipefail
 
           # Clean wiki (keep .git)
           find wiki -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
 
-          # Copy docs content into wiki
-          # (mirrors directory structure under wiki/)
-          rsync -a --exclude '.git' --exclude '.github' docs/ wiki/ || true
+          # Copy docs content into wiki (if docs/ exists)
+          if [ -d docs ]; then
+            rsync -a --exclude '.git' --exclude '.github' docs/ wiki/ || true
+          fi
 
-          # Helper: title from first H1, else filename prettified
+          # Helper: title from first H1, else filename; trim trailing whitespace
           title_from_file () {
             local f="$1"
             local h
-            h="$(grep -m1 '^#' "$f" | sed 's/^#\+ *//')"
+            # First H1 -> strip leading #'s and spaces, then trim trailing spaces
+            h="$(grep -m1 '^#' "$f" | sed 's/^#\+ *//' | sed 's/[[:space:]]\+$//')"
             if [ -n "${h:-}" ]; then
-              echo "$h"
+              printf '%s\n' "$h"
             else
               basename "$f" .md | sed 's/[_-]/ /g'
             fi
           }
 
-          # === Generate Home.md (index) with Wiki-style links ===
-          {
-            echo "# Project Docs"
-            echo
-            echo "This page is auto-generated from \`docs/\`."
-            echo
+          # If nothing was copied, still ensure wiki exists with a minimal Home
+          if ! find wiki -mindepth 1 -not -name ".git" | read -r _; then
+            printf '# Project Docs\n\n(Empty)\n' > wiki/Home.md
+            printf '[[Home]]\n' > wiki/_Sidebar.md
+          else
+            # === Generate Home.md (index) with Wiki-style links ===
+            {
+              echo "# Project Docs"
+              echo
+              echo "This page is auto-generated from \`docs/\`."
+              echo
 
-            # Top-level files (no extension in links)
-            echo "## Top-level"
+              # Top-level files (no extension in links)
+              echo "## Top-level"
+              root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+              if [ -n "$root_mds" ]; then
+                while IFS= read -r f; do
+                  [ -z "$f" ] && continue
+                  t="$(title_from_file "$f")"
+                  base="$(basename "$f" .md)"
+                  echo "- [[${base}|$t]]"
+                done <<< "$root_mds"
+              else
+                echo "- (none)"
+              fi
+              echo
+
+              # First-level directories
+              dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
+              if [ -n "$dirs" ]; then
+                while IFS= read -r d; do
+                  [ -z "$d" ] && continue
+                  dname="$(basename "$d")"
+                  echo "## $dname"
+                  files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+                  if [ -n "$files" ]; then
+                    while IFS= read -r f; do
+                      [ -z "$f" ] && continue
+                      t="$(title_from_file "$f")"
+                      fname="$(basename "$f")"
+                      base="${fname%.md}"
+                      echo "- [[${dname}/${base}|$t]]"
+                    done <<< "$files"
+                  else
+                    echo "- (none)"
+                  fi
+                  echo
+                done <<< "$dirs"
+              fi
+            } > wiki/Home.md
+
+            # === Generate _Sidebar.md (Wiki-style links) ===
+            tmp_sidebar="$(mktemp)"
+            echo "- [[Home]]" >> "$tmp_sidebar"
+
+            # Recompute lists for sidebar to be safe
             root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+            dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
+
+            # Top-level items
             if [ -n "$root_mds" ]; then
               while IFS= read -r f; do
                 [ -z "$f" ] && continue
                 t="$(title_from_file "$f")"
                 base="$(basename "$f" .md)"
-                echo "- [[${base}|$t]]"
+                echo "- [[${base}|$t]]" >> "$tmp_sidebar"
               done <<< "$root_mds"
-            else
-              echo "- (none)"
             fi
-            echo
 
-            # First-level directories
-            dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
+            # Nested sections (dir/page)
             if [ -n "$dirs" ]; then
               while IFS= read -r d; do
                 [ -z "$d" ] && continue
                 dname="$(basename "$d")"
-                echo "## $dname"
+                echo "- $dname" >> "$tmp_sidebar"
                 files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
                 if [ -n "$files" ]; then
                   while IFS= read -r f; do
@@ -84,55 +132,14 @@ jobs:
                     t="$(title_from_file "$f")"
                     fname="$(basename "$f")"
                     base="${fname%.md}"
-                    # Use slash for subpages: dir/page
-                    echo "- [[${dname}/${base}|$t]]"
+                    echo "  - [[${dname}/${base}|$t]]" >> "$tmp_sidebar"
                   done <<< "$files"
-                else
-                  echo "- (none)"
                 fi
-                echo
               done <<< "$dirs"
             fi
-          } > wiki/Home.md
 
-          # === Generate _Sidebar.md (Wiki-style links) ===
-          tmp_sidebar="$(mktemp)"
-          echo "- [[Home]]" >> "$tmp_sidebar"
-
-          # Recompute lists for sidebar to be safe
-          root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-          dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
-
-          # Top-level items
-          if [ -n "$root_mds" ]; then
-            while IFS= read -r f; do
-              [ -z "$f" ] && continue
-              t="$(title_from_file "$f")"
-              base="$(basename "$f" .md)"
-              echo "- [[${base}|$t]]" >> "$tmp_sidebar"
-            done <<< "$root_mds"
+            mv "$tmp_sidebar" wiki/_Sidebar.md
           fi
-
-          # Nested sections (dir/page)
-          if [ -n "$dirs" ]; then
-            while IFS= read -r d; do
-              [ -z "$d" ] && continue
-              dname="$(basename "$d")"
-              echo "- $dname" >> "$tmp_sidebar"
-              files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-              if [ -n "$files" ]; then
-                while IFS= read -r f; do
-                  [ -z "$f" ] && continue
-                  t="$(title_from_file "$f")"
-                  fname="$(basename "$f")"
-                  base="${fname%.md}"
-                  echo "  - [[${dname}/${base}|$t]]" >> "$tmp_sidebar"
-                done <<< "$files"
-              fi
-            done <<< "$dirs"
-          fi
-
-          mv "$tmp_sidebar" wiki/_Sidebar.md
 
       - name: Commit & Push to wiki
         working-directory: wiki
@@ -140,7 +147,8 @@ jobs:
           set -euo pipefail
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
-            git commit -m "chore(wiki): sync from docs (${GITHUB_SHA}) with auto-generated Home.md and _Sidebar.md (wiki-style links)"
+            git commit -m "chore(wiki): sync from docs (${GITHUB_SHA}) with auto-generated Home.md and _Sidebar.md (H1-first, trim)"
+            # Most GitHub Wikis use 'master' as the default branch
             git push origin HEAD:master
           else
             echo "No changes to commit."
