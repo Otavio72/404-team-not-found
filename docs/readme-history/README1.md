@@ -1,5 +1,3 @@
-# README1
-
 ## 404-team-not-found
 
 This application is a task manager for York University students to be able to register dates.
