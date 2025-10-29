@@ -20,35 +20,31 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Clone wiki and ensure `master` exists
+      - name: Clone wiki and ensure `main` exists
         run: |
           set -euo pipefail
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
-
-          # If the wiki doesn't have a master branch, create it.
-          if ! git -C wiki ls-remote --heads origin master | grep -q 'refs/heads/master'; then
-            echo "No 'master' branch on wiki; creating it."
-            git -C wiki checkout --orphan master
+          # If the wiki doesn't have a main branch, create it locally and push it.
+          if ! git -C wiki ls-remote --heads origin main | grep -q 'refs/heads/main'; then
+            echo "No 'main' branch on wiki; creating it."
+            git -C wiki checkout --orphan main
             rm -rf wiki/*
             echo "# Wiki" > wiki/Home.md
             git -C wiki add -A
-            git -C wiki commit -m "chore(wiki): initialize master branch"
-            git -C wiki push origin master
+            git -C wiki commit -m "chore(wiki): initialize main branch"
+            git -C wiki push origin main
           fi
-
-          # Make sure we're on master locally
-          git -C wiki checkout master || git -C wiki switch master
+          # Make sure we're on main
+          git -C wiki checkout main || git -C wiki switch main
 
       - name: Sync docs -> wiki and generate Home/_Sidebar (wiki-style links)
         run: |
           set -euo pipefail
 
-          shopt -s dotglob nullglob
-
           # Clean wiki (keep .git)
           find wiki -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
 
-          # Copy docs content into wiki (keeps structure & assets)
+          # Copy docs content into wiki
           rsync -a --exclude '.git' --exclude '.github' docs/ wiki/ || true
 
           # Helper: title from first H1 (trim), else filename prettified (safe if no H1)
@@ -112,6 +108,8 @@ jobs:
           echo "- [[Home]]" >> "$tmp_sidebar"
 
           root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
+          dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
+
           if [ -n "$root_mds" ]; then
             while IFS= read -r f; do
               [ -z "$f" ] && continue
@@ -121,7 +119,6 @@ jobs:
             done <<< "$root_mds"
           fi
 
-          dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
           if [ -n "$dirs" ]; then
             while IFS= read -r d; do
               [ -z "$d" ] && continue
@@ -142,14 +139,14 @@ jobs:
 
           mv "$tmp_sidebar" wiki/_Sidebar.md
 
-      - name: Commit & Push to wiki (master only)
+      - name: Commit & Push to wiki (main only)
         working-directory: wiki
         run: |
           set -euo pipefail
           if [ -n "$(git status --porcelain)" ]; then
             git add -A
             git commit -m "chore(wiki): sync from docs (${GITHUB_SHA}) with auto-generated Home.md and _Sidebar.md"
-            git push origin HEAD:master
+            git push origin HEAD:main
           else
             echo "No changes to commit."
           fi
