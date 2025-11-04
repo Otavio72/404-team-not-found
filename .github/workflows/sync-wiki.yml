@@ -19,107 +19,124 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Clone wiki
         run: |
           set -euo pipefail
           git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki
+
       - name: Sync docs -> wiki and generate Home/_Sidebar (wiki-style links)
+        shell: bash
         run: |
           set -euo pipefail
+
           # Clean wiki (keep .git)
           find wiki -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
-          # Copy docs content into wiki
-          # (mirrors directory structure under wiki/)
+
+          # Copy docs content into wiki (mirror structure)
           rsync -a --exclude '.git' --exclude '.github' docs/ wiki/ || true
-          # Helper: title from first H1, else filename prettified
+
+          # Normalize CRLF -> LF on all markdown files to avoid stray CRs
+          find wiki -type f -name '*.md' -exec sed -i 's/\r$//' {} +
+
+          # Helper: title from first H1, else filename prettified (single-line, trimmed)
           title_from_file () {
             local f="$1"
             local h
-            h="$(grep -m1 '^#' "$f" | sed 's/^#\+ *//')"
-            if [ -n "${h:-}" ]; then
-              echo "$h"
+            # Get first H1, strip leading #'s and surrounding whitespace, remove CR, trim trailing spaces.
+            if h="$(awk '
+              BEGIN{found=0}
+              /^[[:space:]]*#/ && !found {
+                gsub(/\r/,"")                    # remove CR
+                sub(/^[[:space:]]*#+[[:space:]]*/, "", $0)  # drop leading #... and spaces
+                sub(/[[:space:]]+$/, "", $0)     # rtrim
+                print
+                found=1
+              }' "$f")" && [ -n "${h:-}" ]; then
+              printf '%s' "$h"
             else
-              basename "$f" .md | sed 's/[_-]/ /g'
+              # Fallback: prettify the filename
+              local base
+              base="$(basename "$f" .md)"
+              printf '%s' "$(printf '%s' "$base" | sed 's/[_-]/ /g')"
             fi
           }
-          # === Generate Home.md (index) with Wiki-style links ===
+
+          # Convenience: sorted, null-delimited find
+          find_md_top () {
+            find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" -print0 | sort -z
+          }
+          find_dirs_top () {
+            find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" -print0 | sort -z
+          }
+          find_md_in_dir () {
+            # $1 = dir
+            find "$1" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" -print0 | sort -z
+          }
+
+          # === Generate Home.md ===
           {
-            echo "# Project Docs"
-            echo
-            echo "This page is auto-generated from \`docs/\`."
-            echo
+            printf '# Project Docs\n\n'
+            printf 'This page is auto-generated from `docs/`.\n\n'
+
             # Top-level files (no extension in links)
-            echo "## Top-level"
-            root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-            if [ -n "$root_mds" ]; then
-              while IFS= read -r f; do
-                [ -z "$f" ] && continue
-                t="$(title_from_file "$f")"
-                base="$(basename "$f" .md)"
-                echo "- [[${base}|$t]]"
-              done <<< "$root_mds"
-            else
-              echo "- (none)"
-            fi
-            echo
-            # First-level directories
-            dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
-            if [ -n "$dirs" ]; then
-              while IFS= read -r d; do
-                [ -z "$d" ] && continue
-                dname="$(basename "$d")"
-                echo "## $dname"
-                files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-                if [ -n "$files" ]; then
-                  while IFS= read -r f; do
-                    [ -z "$f" ] && continue
-                    t="$(title_from_file "$f")"
-                    fname="$(basename "$f")"
-                    base="${fname%.md}"
-                    # Use slash for subpages: dir/page
-                    echo "- [[${dname}/${base}|$t]]"
-                  done <<< "$files"
-                else
-                  echo "- (none)"
-                fi
-                echo
-              done <<< "$dirs"
-            fi
-          } > wiki/Home.md
-          # === Generate _Sidebar.md (Wiki-style links) ===
-          tmp_sidebar="$(mktemp)"
-          echo "- [[Home]]" >> "$tmp_sidebar"
-          # Recompute lists for sidebar to be safe
-          root_mds=$(find wiki -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-          dirs=$(find wiki -mindepth 1 -maxdepth 1 -type d ! -name ".git" | sort)
-          # Top-level items
-          if [ -n "$root_mds" ]; then
-            while IFS= read -r f; do
-              [ -z "$f" ] && continue
+            printf '## Top-level\n'
+            has_top=0
+            while IFS= read -r -d '' f; do
+              has_top=1
               t="$(title_from_file "$f")"
               base="$(basename "$f" .md)"
-              echo "- [[${base}|$t]]" >> "$tmp_sidebar"
-            done <<< "$root_mds"
-          fi
-          # Nested sections (dir/page)
-          if [ -n "$dirs" ]; then
-            while IFS= read -r d; do
-              [ -z "$d" ] && continue
+              printf -- '- [[%s|%s]]\n' "$base" "$t"
+            done < <(find_md_top)
+            if [ "$has_top" -eq 0 ]; then
+              printf -- '- (none)\n'
+            fi
+            printf '\n'
+
+            # First-level directories
+            while IFS= read -r -d '' d; do
               dname="$(basename "$d")"
-              echo "- $dname" >> "$tmp_sidebar"
-              files=$(find "$d" -maxdepth 1 -type f -name "*.md" ! -name "Home.md" ! -name "_Sidebar.md" | sort)
-              if [ -n "$files" ]; then
-                while IFS= read -r f; do
-                  [ -z "$f" ] && continue
-                  t="$(title_from_file "$f")"
-                  fname="$(basename "$f")"
-                  base="${fname%.md}"
-                  echo "  - [[${dname}/${base}|$t]]" >> "$tmp_sidebar"
-                done <<< "$files"
+              printf '## %s\n' "$dname"
+              has_files=0
+              while IFS= read -r -d '' f; do
+                has_files=1
+                t="$(title_from_file "$f")"
+                fname="$(basename "$f")"
+                base="${fname%.md}"
+                # Use slash for subpages: dir/page
+                printf -- '- [[%s/%s|%s]]\n' "$dname" "$base" "$t"
+              done < <(find_md_in_dir "$d")
+              if [ "$has_files" -eq 0 ]; then
+                printf -- '- (none)\n'
               fi
-            done <<< "$dirs"
-          fi
-          mv "$tmp_sidebar" wiki/_Sidebar.md
+              printf '\n'
+            done < <(find_dirs_top)
+          } > wiki/Home.md
+
+          # === Generate _Sidebar.md ===
+          {
+            printf -- '- [[Home]]\n'
+
+            # Top-level items
+            while IFS= read -r -d '' f; do
+              t="$(title_from_file "$f")"
+              base="$(basename "$f" .md)"
+              printf -- '- [[%s|%s]]\n' "$base" "$t"
+            done < <(find_md_top)
+
+            # Nested sections (dir/page)
+            while IFS= read -r -d '' d; do
+              dname="$(basename "$d")"
+              printf -- '- %s\n' "$dname"
+              while IFS= read -r -d '' f; do
+                t="$(title_from_file "$f")"
+                fname="$(basename "$f")"
+                base="${fname%.md}"
+                printf -- '  - [[%s/%s|%s]]\n' "$dname" "$base" "$t"
+              done < <(find_md_in_dir "$d")
+            done < <(find_dirs_top)
+          } > wiki/_Sidebar.md
+
       - name: Commit & Push to wiki
         working-directory: wiki
         run: |
