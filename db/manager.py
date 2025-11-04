@@ -1,5 +1,5 @@
-import sqlite3
 import logging
+import sqlite3
 from pathlib import Path
 
 log = logging.getLogger("TaskManager.DB")

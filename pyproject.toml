@@ -1,0 +1,19 @@
+[project]
+name = "task-manager"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+
+[tool.ruff]
+lint.ignore = ["E501"]
+target-version = "py312"
+lint.select = [
+  "E",  # pycodestyle errors (PEP 8)
+  "W",  # pycodestyle warnings (PEP 8)
+  "N",  # pep8-naming
+  "F",  # pyflakes (unused names/imports, etc.)
+  "I",  # import sorting (isort rules)
+]
+exclude = [
+  "build", "dist", ".venv", ".mypy_cache", ".ruff_cache",
+  ".git", "__pycache__", ".pytest_cache"
+]
