@@ -23,5 +23,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff==0.*
 
-      - name: Ruff (PEP8 checks: E/W + naming + imports)
+      - name: Ruff PEP8 checks
         run: ruff check --output-format=github .
