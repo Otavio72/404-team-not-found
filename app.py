@@ -1,4 +1,3 @@
-import tkinter as tk
 import ttkbootstrap as ttk
 
 if __name__ == "__main__":
