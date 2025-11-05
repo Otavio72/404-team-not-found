@@ -5,6 +5,7 @@ from ttkbootstrap.constants import *
 from tkinter import messagebox
 
 from db.manager import DatabaseManager
+from service.auth import authenticate
 
 
 class WelcomeScreen(ttk.Frame):
@@ -76,41 +77,36 @@ class WelcomeScreen(ttk.Frame):
         name = (self.name_var.get() or "").strip()
         email = (self.email_var.get() or "").strip()
 
-        # Validation
-        if not name or not email:
-            messagebox.showerror("Input Error", "Name and Email are required.")
-            return
-        if "@" not in email or email.startswith("@") or email.endswith("@"):
+        def ask_confirm(entered: str, saved: str) -> bool:
+            return messagebox.askyesno(
+                "Name doesn't match",
+                f"This email is registered as '{saved}'.\n"
+                f"You entered '{entered}'.\n\n"
+                "Log in as the saved user?",
+            )
+
+        status, user = authenticate(
+            self.db, name, email, confirm_on_mismatch=ask_confirm)
+
+        if status == "invalid_input":
             messagebox.showerror(
-                "Input Error", "Please enter a valid email address.")
+                "Input Error", "Name and Email are required, and email must contain '@'.")
             return
-
-        # Login or register
-        user = self._get_user_by_email(email)
-        if user:
-            messagebox.showinfo(
-                "Welcome back", f"Logged in as {user['name']} ({user['email']}).")
-            if self.on_login:
-                self.on_login(user)
-            return
-
-        try:
-            user_id = self._create_user(name, email)
-            # fetch the new row for callback consistency
-            user = self._get_user_by_email(email)
-        except sqlite3.IntegrityError:
-            # UNIQUE(email) collision fallback
-            user = self._get_user_by_email(
-                email) or {"id": None, "name": name, "email": email}
-            messagebox.showinfo(
-                "Welcome back", f"Logged in as {user['name']} ({user['email']}).")
-        except Exception as exc:
+        if status == "db_error":
             messagebox.showerror(
-                "Database Error", f"Could not create user.\n{exc}")
+                "Database Error", "Something went wrong. Please try again.")
             return
-        else:
+        if status == "mismatch_declined":
             messagebox.showinfo(
-                "Welcome!", f"Account created (ID: {user_id}). You're now logged in.")
+                "Cancelled", "Login was cancelled. Please correct your name or use another email.")
+            return
+        if status == "created":
+            messagebox.showinfo(
+                "Welcome!", f"Account created. You're now logged in as {user['name']} ({user['email']}).")
+        if status == "logged_in":
+            title = "Welcome back"
+            messagebox.showinfo(
+                title, f"Logged in as {user['name']} ({user['email']}).")
 
-        if self.on_login:
+        if user and self.on_login:
             self.on_login(user)
