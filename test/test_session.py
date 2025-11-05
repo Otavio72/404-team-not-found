@@ -1,7 +1,9 @@
 from pathlib import Path
+
 import pytest
-from session.session import SessionManager
+
 from db.manager import DatabaseManager
+from session.session import SessionManager
 
 
 @pytest.fixture
