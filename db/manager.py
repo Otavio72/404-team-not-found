@@ -59,6 +59,14 @@ class DatabaseManager:
             log.exception("DB read failed: %s | params=%s", sql, params)
             raise
 
+    def user_exists(self, user_id: int) -> bool:
+        try:
+            row = self.fetchall("SELECT 1 FROM USER WHERE id=?", (user_id,))
+            return bool(row)
+        except Exception:
+            log.exception("user_exists check failed for id=%s", user_id)
+            return False
+
     def close(self):
         try:
             self.conn.close()
