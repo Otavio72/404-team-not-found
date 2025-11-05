@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pytest
 
 from db.manager import DatabaseManager

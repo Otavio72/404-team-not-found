@@ -1,8 +1,7 @@
-from pathlib import Path
-import sqlite3
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
 from tkinter import messagebox
+
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import EW, NSEW, SUCCESS, W
 
 from db.manager import DatabaseManager
 from service.auth import authenticate

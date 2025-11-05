@@ -1,7 +1,9 @@
 # app.py
 from pathlib import Path
+
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import BOTH, YES
+
 from ui.welcome import WelcomeScreen
 
 

@@ -1,5 +1,5 @@
-from typing import Callable, Optional
 import sqlite3
+from typing import Callable, Optional
 
 # Status strings the caller can use to decide what to show in UI.
 # - "created": new user inserted
