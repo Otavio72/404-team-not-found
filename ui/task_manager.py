@@ -1,7 +1,8 @@
 # ui/task_manager.py
 import tkinter as tk
+
 import ttkbootstrap as ttk
-from ttkbootstrap.constants import X, BOTH
+from ttkbootstrap.constants import BOTH, X
 from ttkbootstrap.dialogs import Messagebox
 from ttkbootstrap.dialogs.dialogs import Querybox
 
