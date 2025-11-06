@@ -1,11 +1,11 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import BOTH, YES
 
-from ui.welcome import WelcomeScreen
 from ui.task_manager import TaskManagerFrame
+from ui.welcome import WelcomeScreen
 
 
 def resource_path(rel: str) -> Path:
