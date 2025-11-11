@@ -10,7 +10,7 @@
 
 - **Team name:** **404 team not found**
 - **Project title:** **Task Manager**
-- **Members (names & emails):** **Kazuma (kazuma17@my.yorku.ca), Chloe, Teniola, Katie**
+- **Members (names & emails):** **Kazuma (kazuma17@my.yorku.ca), Chloe(cab001@my.yorku.ca), Teniola(yusuf007@my.yorku.ca), Katie(katielui@my.yorku.ca)**
 - **Update #:** 1   |   **Date:** **2025-11-05** (YYYY-MM-DD)
 
 ---
