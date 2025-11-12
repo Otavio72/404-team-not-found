@@ -26,9 +26,14 @@ class WelcomeScreen(ttk.Frame):
 
         style = ttk.Style(theme="flatly")  # tema inicial
 
-        styleLabel = ttk.Style()
-        styleLabel.configure("CardLabel.TLabel", background="#f8f9fa", foreground="#000000")
         
+        # Card
+        style.configure("Card.TFrame", background="#dee2e6")
+        style.configure("CardDark.TFrame", background="#f0eded")
+
+        # Labels dentro do card
+        style.configure("CardLabel.TLabel", background="#dee2e6", foreground="#000000")
+        style.configure("CardLabelDark.TLabel", background="#2b2b2b", foreground="#ffffff")
 
         # ---- DB init --------------------------------------------------------
         self.db = DatabaseManager(db_path)
@@ -41,45 +46,26 @@ class WelcomeScreen(ttk.Frame):
 
         frameThemeButton = ttk.Frame(self)
         frameThemeButton.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=3) 
-        
 
-        def toggle_theme():
-            current = style.theme_use()
-            new_theme = "darkly" if current == "flatly" else "flatly"
-            style.theme_use(new_theme)
-
-                # atualizar fundo e texto das labels
-            if new_theme == "flatly":
-                style.configure("CardLabel.TLabel", background="#f8f9fa", foreground="#000000")  # fundo claro, texto escuro
-                card.configure(bootstyle="light")
-            else:
-                style.configure("CardLabel.TLabel", background="#444444", foreground="#ffffff")  # fundo escuro, texto claro
-                card.configure(bootstyle="secondary")
-
-                    # --- Botão ---
-        toggle_btn = ttk.Button(frameThemeButton, text="Toggle Light/Dark", command=toggle_theme)
-        toggle_btn.grid(row=1, column=0, pady=20)
-
-
-
-        card = ttk.Frame(wrapper, padding=30, style="CardLabel.TLabel")
+        card = ttk.Frame(wrapper, padding=30, style="Card.TFrame")
         card.grid(row=1, column=0, sticky=NSEW)
         card.columnconfigure(2, weight=1)
 
         
-        ttk.Label(card, text="Welcome!", style="CardLabel.TLabel" , font=("-size", 14, "-weight", "bold")).grid(
-            row=0, column=0, pady=(0, 16)
-        )
+        label1 = ttk.Label(card, text="Welcome!", style="CardLabel.TLabel" , font=("-size", 14, "-weight", "bold"))
+        label1.grid(row=0, column=0, pady=(0, 16))
 
         # Name
         self.name_var = ttk.StringVar()
-        ttk.Label(card, text="Name:", style="CardLabel.TLabel").grid(row=1, column=0, sticky=W, )
+        label2 = ttk.Label(card, text="Name:", style="CardLabel.TLabel")
+        label2.grid(row=1, column=0, sticky=W)
         self.name_entry = ttk.Entry(card, textvariable=self.name_var, width=44)
         self.name_entry.grid(row=2, column=0, sticky=EW, pady=(4, 12))
 
         # Email
         self.email_var = ttk.StringVar()
-        ttk.Label(card, text="Email:" , style="CardLabel.TLabel").grid(row=3, column=0, sticky=W)
+        label3 = ttk.Label(card, text="Email:" , style="CardLabel.TLabel")
+        label3.grid(row=3, column=0, sticky=W)
         self.email_entry = ttk.Entry(
             card, textvariable=self.email_var, width=44)
         self.email_entry.grid(row=4, column=0, sticky=EW, pady=(4, 16))
@@ -92,9 +78,29 @@ class WelcomeScreen(ttk.Frame):
 
         self.name_entry.focus_set()
 
-        
+        # ---- Theme toggle ---------------------------------------------------
+        def toggle_theme():
+            current = style.theme_use()
+            new_theme = "darkly" if current == "flatly" else "flatly"
+            style.theme_use(new_theme)
 
+            if new_theme == "flatly":
+                style.configure("Card.TFrame", background="#dee2e6")
+                style.configure("CardLabel.TLabel", background="#dee2e6", foreground="#000000")
+                card.configure(style="Card.TFrame")
+                label1.configure(style="CardLabel.TLabel")
+                label2.configure(style="CardLabel.TLabel")
+                label3.configure(style="CardLabel.TLabel")
+            else:
+                style.configure("CardDark.TFrame", background="#2b2b2b")
+                style.configure("CardLabelDark.TLabel", background="#2b2b2b", foreground="#ffffff")
+                card.configure(style="CardDark.TFrame")
+                label1.configure(style="CardLabelDark.TLabel")
+                label2.configure(style="CardLabelDark.TLabel")
+                label3.configure(style="CardLabelDark.TLabel")
 
+        toggle_btn = ttk.Button(frameThemeButton, text="Toggle Light/Dark", command=toggle_theme)
+        toggle_btn.grid(row=0, column=0, pady=5)
 
 
     # ---- DB helpers ---------------------------------------------------------
