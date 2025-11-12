@@ -3,7 +3,7 @@ import tkinter as tk
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import BOTH, X
-from ttkbootstrap.dialogs import Messagebox
+from tkinter import messagebox as Messagebox
 from ttkbootstrap.dialogs.dialogs import Querybox
 from ui.welcome import WelcomeScreen
 
