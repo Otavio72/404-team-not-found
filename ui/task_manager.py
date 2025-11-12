@@ -15,6 +15,7 @@ class TaskManagerFrame(ttk.Frame):
         self.controller = controller
         self.db = controller.db              # expects DatabaseManager with fetchall/execute
         self.current_user_id = None
+        style = ttk.Style(theme="flatly")  # tema inicial
 
         # ---- Top Bar --------------------------------------------------------
         top = ttk.Frame(self, padding=(12, 12, 12, 0))
@@ -23,13 +24,31 @@ class TaskManagerFrame(ttk.Frame):
         self.user_label.pack(side=tk.LEFT)
         ttk.Button(top, text="Logout", bootstyle="danger", command=self.controller.logout) \
             .pack(side=tk.RIGHT)
+        
+        frameThemeButton = ttk.Frame(top)
+        frameThemeButton.pack(side=tk.RIGHT, padx=10) 
+        
+
+        def toggle_theme():
+            current = style.theme_use()
+            new_theme = "darkly" if current == "flatly" else "flatly"
+            style.theme_use(new_theme)
+
+                    # --- Botão ---
+        toggle_btn = ttk.Button(frameThemeButton, text="Toggle Light/Dark", command=toggle_theme)
+        toggle_btn.grid(row=0, column=0, pady=20)
 
         # ---- Main Panes -----------------------------------------------------
         main = ttk.Frame(self, padding=12)
         main.pack(fill=BOTH, expand=True)
 
+
+
         panes = ttk.Panedwindow(main, orient=tk.HORIZONTAL)
         panes.pack(fill=BOTH, expand=True)
+
+
+
 
         # Courses pane
         courses_pane = ttk.Labelframe(panes, text="Courses", padding=10)
