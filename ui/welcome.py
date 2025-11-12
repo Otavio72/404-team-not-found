@@ -6,6 +6,8 @@ from ttkbootstrap.constants import EW, NSEW, SUCCESS, W
 from db.manager import DatabaseManager
 from service.auth import authenticate
 
+#root = ttk.Tk()  # ou Tkinter Tk()
+
 
 class WelcomeScreen(ttk.Frame):
     """
@@ -22,17 +24,37 @@ class WelcomeScreen(ttk.Frame):
         super().__init__(master)
         self.on_login = on_login
 
+        style = ttk.Style(theme="flatly")  # tema inicial
+
         # ---- DB init --------------------------------------------------------
         self.db = DatabaseManager(db_path)
         self.db.run_schema_file(schema_path)
 
         # ---- Centered card --------------------------------------------------
+        
         wrapper = ttk.Frame(self)
         wrapper.place(relx=0.5, rely=0.5, anchor="center")
 
+        frameThemeButton = ttk.Frame(self)
+        frameThemeButton.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=3) 
+        
+
+        def toggle_theme():
+            current = style.theme_use()
+            new_theme = "darkly" if current == "flatly" else "flatly"
+            style.theme_use(new_theme)
+
+                    # --- Botão ---
+        toggle_btn = ttk.Button(frameThemeButton, text="Toggle Light/Dark", command=toggle_theme)
+        toggle_btn.grid(row=1, column=0, pady=20)
+
+
+
         card = ttk.Frame(wrapper, padding=30, bootstyle="secondary")
-        card.grid(row=0, column=0, sticky=NSEW)
-        card.columnconfigure(0, weight=1)
+        card.grid(row=1, column=0, sticky=NSEW)
+        card.columnconfigure(2, weight=1)
+
+
 
         ttk.Label(card, text="Welcome!", font=("-size", 14, "-weight", "bold")).grid(
             row=0, column=0, pady=(0, 16)
@@ -58,6 +80,11 @@ class WelcomeScreen(ttk.Frame):
         self.submit_btn.grid(row=5, column=0, sticky=EW)
 
         self.name_entry.focus_set()
+
+        
+
+
+
 
     # ---- DB helpers ---------------------------------------------------------
     def _get_user_by_email(self, email: str):

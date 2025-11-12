@@ -28,11 +28,11 @@ class TaskManagerFrame(ttk.Frame):
         main = ttk.Frame(self, padding=12)
         main.pack(fill=BOTH, expand=True)
 
-        panes = ttk.PanedWindow(main, orient=tk.HORIZONTAL)
+        panes = ttk.Panedwindow(main, orient=tk.HORIZONTAL)
         panes.pack(fill=BOTH, expand=True)
 
         # Courses pane
-        courses_pane = ttk.LabelFrame(panes, text="Courses", padding=10)
+        courses_pane = ttk.Labelframe(panes, text="Courses", padding=10)
         panes.add(courses_pane, weight=1)
 
         self.courses_list = tk.Listbox(
@@ -48,7 +48,7 @@ class TaskManagerFrame(ttk.Frame):
             .pack(side=tk.LEFT, expand=True, fill=X, padx=(4, 0))
 
         # Tasks pane
-        tasks_pane = ttk.LabelFrame(panes, text="Tasks", padding=10)
+        tasks_pane = ttk.Labelframe(panes, text="Tasks", padding=10)
         panes.add(tasks_pane, weight=1)
 
         self.tasks_list = tk.Listbox(
@@ -70,7 +70,7 @@ class TaskManagerFrame(ttk.Frame):
         self.btn_task_del.pack(side=tk.LEFT, expand=True, fill=X, padx=(4, 0))
 
         # Details pane
-        details_pane = ttk.LabelFrame(panes, text="Details", padding=10)
+        details_pane = ttk.Labelframe(panes, text="Details", padding=10)
         panes.add(details_pane, weight=2)
 
         ttk.Label(details_pane, text="Name:").pack(anchor="w")
