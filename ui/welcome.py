@@ -6,8 +6,6 @@ from ttkbootstrap.constants import EW, NSEW, SUCCESS, W
 from db.manager import DatabaseManager
 from service.auth import authenticate
 
-#root = ttk.Tk()  # ou Tkinter Tk()
-
 
 class WelcomeScreen(ttk.Frame):
     """
@@ -20,19 +18,19 @@ class WelcomeScreen(ttk.Frame):
         on_login (callable|None): callback receiving the logged-in sqlite3.Row
     """
     current_theme = "flatly"
-    
+
     def __init__(self, master, db_path: str, schema_path: str, on_login=None):
         super().__init__(master)
         self.on_login = on_login
 
         style = ttk.Style(theme=WelcomeScreen.current_theme)
 
-        
+
         # Card
         style.configure("Card.TFrame", background="#dee2e6")
         style.configure("CardDark.TFrame", background="#f0eded")
 
-        # Labels dentro do card
+        # Card Labels
         style.configure("CardLabel.TLabel", background="#dee2e6", foreground="#000000")
         style.configure("CardLabelDark.TLabel", background="#2b2b2b", foreground="#ffffff")
 
@@ -41,18 +39,18 @@ class WelcomeScreen(ttk.Frame):
         self.db.run_schema_file(schema_path)
 
         # ---- Centered card --------------------------------------------------
-        
+
         wrapper = ttk.Frame(self)
         wrapper.place(relx=0.5, rely=0.5, anchor="center")
 
-        frameThemeButton = ttk.Frame(self)
-        frameThemeButton.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=3) 
+        frame_theme_button = ttk.Frame(self)
+        frame_theme_button.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=3)
 
         card = ttk.Frame(wrapper, padding=30, style="Card.TFrame")
         card.grid(row=1, column=0, sticky=NSEW)
         card.columnconfigure(2, weight=1)
 
-        
+
         label1 = ttk.Label(card, text="Welcome!", style="CardLabel.TLabel" , font=("-size", 14, "-weight", "bold"))
         label1.grid(row=0, column=0, pady=(0, 16))
 
@@ -101,7 +99,7 @@ class WelcomeScreen(ttk.Frame):
                 label2.configure(style="CardLabelDark.TLabel")
                 label3.configure(style="CardLabelDark.TLabel")
 
-        toggle_btn = ttk.Button(frameThemeButton, text="Toggle Light/Dark", command=toggle_theme)
+        toggle_btn = ttk.Button(frame_theme_button, text="Toggle Light/Dark", command=toggle_theme)
         toggle_btn.grid(row=0, column=0, pady=5)
 
 

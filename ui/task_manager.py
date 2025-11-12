@@ -1,11 +1,13 @@
 # ui/task_manager.py
 import tkinter as tk
+from tkinter import messagebox as Messagebox
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import BOTH, X
-from tkinter import messagebox as Messagebox
 from ttkbootstrap.dialogs.dialogs import Querybox
+
 from ui.welcome import WelcomeScreen
+
 
 class TaskManagerFrame(ttk.Frame):
     """Task Manager main UI (user-scoped)."""
@@ -24,10 +26,10 @@ class TaskManagerFrame(ttk.Frame):
         self.user_label.pack(side=tk.LEFT)
         ttk.Button(top, text="Logout", bootstyle="danger", command=self.controller.logout) \
             .pack(side=tk.RIGHT)
-        
+
         frameThemeButton = ttk.Frame(top)
-        frameThemeButton.pack(side=tk.RIGHT, padx=10) 
-        
+        frameThemeButton.pack(side=tk.RIGHT, padx=10)
+
 
         def toggle_theme():
             current = style.theme_use()
@@ -35,7 +37,7 @@ class TaskManagerFrame(ttk.Frame):
             WelcomeScreen.current_theme = new_theme
             style.theme_use(new_theme)
 
-                    # --- Botão ---
+
         toggle_btn = ttk.Button(frameThemeButton, text="Toggle Light/Dark", command=toggle_theme)
         toggle_btn.grid(row=0, column=0, pady=20)
 
