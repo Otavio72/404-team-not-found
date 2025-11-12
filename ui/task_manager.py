@@ -5,7 +5,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import BOTH, X
 from ttkbootstrap.dialogs import Messagebox
 from ttkbootstrap.dialogs.dialogs import Querybox
-
+from ui.welcome import WelcomeScreen
 
 class TaskManagerFrame(ttk.Frame):
     """Task Manager main UI (user-scoped)."""
@@ -15,7 +15,7 @@ class TaskManagerFrame(ttk.Frame):
         self.controller = controller
         self.db = controller.db              # expects DatabaseManager with fetchall/execute
         self.current_user_id = None
-        style = ttk.Style(theme="flatly")  # tema inicial
+        style = ttk.Style(theme=WelcomeScreen.current_theme)
 
         # ---- Top Bar --------------------------------------------------------
         top = ttk.Frame(self, padding=(12, 12, 12, 0))
@@ -32,6 +32,7 @@ class TaskManagerFrame(ttk.Frame):
         def toggle_theme():
             current = style.theme_use()
             new_theme = "darkly" if current == "flatly" else "flatly"
+            WelcomeScreen.current_theme = new_theme
             style.theme_use(new_theme)
 
                     # --- Botão ---

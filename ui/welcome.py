@@ -19,12 +19,13 @@ class WelcomeScreen(ttk.Frame):
         schema_path (str): path to schema.sql
         on_login (callable|None): callback receiving the logged-in sqlite3.Row
     """
-
+    current_theme = "flatly"
+    
     def __init__(self, master, db_path: str, schema_path: str, on_login=None):
         super().__init__(master)
         self.on_login = on_login
 
-        style = ttk.Style(theme="flatly")  # tema inicial
+        style = ttk.Style(theme=WelcomeScreen.current_theme)
 
         
         # Card
@@ -82,6 +83,7 @@ class WelcomeScreen(ttk.Frame):
         def toggle_theme():
             current = style.theme_use()
             new_theme = "darkly" if current == "flatly" else "flatly"
+            WelcomeScreen.current_theme = new_theme
             style.theme_use(new_theme)
 
             if new_theme == "flatly":
